@@ -1,5 +1,5 @@
 import rpyc
-from services.search import Searcher
+from modules.search import Searcher
 
 class SlaveService(rpyc.Service):
     def __init__(self):
@@ -8,9 +8,16 @@ class SlaveService(rpyc.Service):
 
         self.searcher = Searcher()
 
-    def exposed_search(self):
-        pass
-        #return f"Returning the search from the {self.__class__.__name__}"
+    def exposed_search(self, search_string):
+        data = self.conn.root.get_data()
+        index_list = self.searcher.search(data, search_string)
+        size, composed_string = self.searcher.show(data, index_list)
+        return size, composed_string
+    
+    def exposed_show_instance(self, index):
+        data = self.conn.root.get_data()
+        composed_string = self.searcher.show_instance(data, index)
+        return composed_string
 
     def exposed_show_all(self):
         data = self.conn.root.get_data()

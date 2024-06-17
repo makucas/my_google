@@ -1,20 +1,20 @@
 class Searcher():        
-    def search(self, search_string):
+    def search(self, data, search_string):
         index_list = []
-        for i, article in enumerate(self.data):
+        for i, article in enumerate(data):
             analysed_text = f"{article['title'].lower()} {article['text'].lower()}".split()
             if search_string.lower() in analysed_text:
                 index_list.append(i)
         return index_list
 
-    def show(self, index_list):
+    def show(self, data, index_list):
         composed_string = ""
         for index in index_list:
-            composed_string += f"{self.data[index]['index']}: {self.data[index]['title']}\n"
+            composed_string += f"{data[index]['index']}: {data[index]['title']}\n"
         return len(index_list), composed_string
 
-    def show_instance(self, index):
-        instance = self.data[index]
+    def show_instance(self, data, index):
+        instance = data[index]
         return(f"Título: {instance['title']}\nAutor: {instance['authors']}\n\n{instance['text']}")
     
     def show_all(self, data):
