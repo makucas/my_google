@@ -1,42 +1,42 @@
 from rpyc.utils.server import ThreadedServer
+from nodes.master_node import MasterService
+from nodes.data_node import DataService
+import nodes.slave_node as slave_node
 import threading
-import slave
-import rpyc
 
-class MasterService(rpyc.Service):
-    def on_connect(self, conn):
-        pass
+MASTER_PORT = 18812
+DATA_PORT = 18813
+SLAVE_PORT = 18814
 
-    def on_disconnect(self, conn):
-        pass
-
-    def exposed_search(self): 
-        ip, port = rpyc.discover("SLAVE")[0]
-        c = rpyc.connect(ip, port)
-        result = c.root.search()
-        return result
-
-def run_server(service, port):
+def start_server(service, port):
     server = ThreadedServer(service, port=port, auto_register=True)
-    print(f"Servidor {service.__name__} iniciado na porta {port}")
+    #print(f"Servidor {service.__name__} iniciado na porta {port}")
+    print("starting...")
     server.start()
 
+def start_thread(service, port):
+    thread = threading.Thread(target=start_server, args=(service, port))
+    thread.start()
+    return thread
+
 if __name__ == "__main__":
-    slave_1 = slave.create_slave("Slave1Service")
-    slave_2 = slave.create_slave("Slave2Service")
-    slave_3 = slave.create_slave("Slave3Service")
+    # Criando dinamicamente os SlaveServices
+    slave_services = ["Slave1Service", "Slave2Service", "Slave3Service"]
+    slaves = [slave_node.create_slave(service) for service in slave_services]
 
-    thread1 = threading.Thread(target=run_server, args=(MasterService, 18812))
-    thread2 = threading.Thread(target=run_server, args=(slave_1, 18813))
-    thread3 = threading.Thread(target=run_server, args=(slave_2, 18814))
-    thread4 = threading.Thread(target=run_server, args=(slave_3, 18815))
+    threads = []
 
-    thread1.start()
-    thread2.start()
-    thread3.start()
-    thread4.start()
+    # Iniciando o DB
+    threads.append(start_thread(DataService("dataset/sample_dataset.json"), DATA_PORT))
 
-    thread1.join()
-    thread2.join()
-    thread3.join()
-    thread4.join()
+    # Iniciar servidor mestre
+    threads.append(start_thread(MasterService, MASTER_PORT))
+
+    # Iniciar servidores escravos
+    for i, slave in enumerate(slaves, start=1):
+        threads.append(start_thread(slave, SLAVE_PORT + i))
+
+    # Aguardar todas as threads terminarem
+    for thread in threads:
+        thread.join()
+
